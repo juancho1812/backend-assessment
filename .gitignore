@@ -1,0 +1,10 @@
+# node
+node_modules
+
+# env
+.env
+
+# AI
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/resources
