@@ -4,11 +4,7 @@
   "description": "In-memory transactions service | Meaningful backend assessment",
   "private": true,
   "license": "UNLICENSED",
-  "author": {
-    "name": "Juan Méndez",
-    "email": "juan@m8l.com",
-    "url": "https://juanmendez.dev"
-  },
+  "author": "Juan Méndez",
   "type": "module",
   "engines": {
     "node": ">=20",
@@ -23,9 +19,7 @@
     "load": "pnpm build && node scripts/load.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest",
     "lint": "eslint \"{src,test}/**/*.ts\" --no-error-on-unmatched-pattern",
-    "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix --no-error-on-unmatched-pattern",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test"
