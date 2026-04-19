@@ -14,8 +14,7 @@
     "verbatimModuleSyntax": true,
     "rootDir": "src",
     "outDir": "dist",
-    "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] },
+    "paths": { "@/*": ["./src/*"] },
     "sourceMap": true,
     "removeComments": true
   },
