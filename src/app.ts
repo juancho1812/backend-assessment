@@ -6,8 +6,12 @@ import { systemClock } from '@/core/clock.js';
 import { statisticsRoute } from '@/routes/statistics.js';
 import { transactionsRoute } from '@/routes/transactions.js';
 
-export async function buildApp() {
-  const app = Fastify({ logger: true });
+export type BuildAppOptions = {
+  logger?: boolean;
+};
+
+export async function buildApp(options: BuildAppOptions = {}) {
+  const app = Fastify({ logger: options.logger ?? true });
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
