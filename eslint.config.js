@@ -16,5 +16,7 @@ export default [
       '@typescript-eslint/no-explicit-any': 'error',
     },
   },
-  { ignores: ['dist/**', 'node_modules/**', 'eslint.config.js', 'vitest.config.ts'] },
+  {
+    ignores: ['dist/**', 'node_modules/**', 'eslint.config.js', 'vitest.config.ts', 'scripts/**'],
+  },
 ];

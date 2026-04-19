@@ -19,6 +19,8 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "start": "node dist/server.js",
+    "smoke": "pnpm build && node scripts/smoke.js",
+    "load": "pnpm build && node scripts/load.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
@@ -31,6 +33,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.6.0",
+    "autocannon": "^8.0.0",
     "eslint": "^10.2.1",
     "prettier": "^3.8.3",
     "tsc-alias": "^1.8.16",
