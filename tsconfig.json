@@ -12,12 +12,12 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "rootDir": "src",
     "outDir": "dist",
     "paths": { "@/*": ["./src/*"] },
     "sourceMap": true,
-    "removeComments": true
+    "removeComments": true,
+    "noEmit": true
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "test"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist"]
 }
