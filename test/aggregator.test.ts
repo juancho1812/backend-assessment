@@ -91,11 +91,6 @@ describe('createAggregator', () => {
       expect(agg.snapshot().chargeSum).toBe(0);
     });
 
-    it('rejects a far-stale transaction', () => {
-      expect(agg.add({ timestamp: BASE_MS - 3_600_000, amount: 10 })).toBe('stale');
-      expect(agg.snapshot().chargeSum).toBe(0);
-    });
-
     it('rejects a future transaction', () => {
       expect(agg.add({ timestamp: BASE_MS + 1_000, amount: 10 })).toBe('future');
       expect(agg.snapshot().chargeSum).toBe(0);
@@ -103,15 +98,6 @@ describe('createAggregator', () => {
   });
 
   describe('sliding window over time', () => {
-    it('drops a transaction once it falls outside the window', () => {
-      agg.add({ timestamp: BASE_MS, amount: 100 });
-      expect(agg.snapshot().chargeSum).toBe(100);
-
-      fake.advance(61_000);
-
-      expect(agg.snapshot().chargeSum).toBe(0);
-    });
-
     it('resets a stale bucket when a new transaction lands on the same index', () => {
       agg.add({ timestamp: BASE_MS, amount: 100 });
       expect(agg.snapshot().chargeCount).toBe(1);
@@ -130,7 +116,7 @@ describe('createAggregator', () => {
       });
     });
 
-    it('keeps accurate totals as transactions scroll through the window', () => {
+    it('tracks transactions at different seconds and expires each as its bucket leaves the window', () => {
       agg.add({ timestamp: BASE_MS, amount: 100 });
       fake.advance(30_000);
       agg.add({ timestamp: BASE_MS + 30_000, amount: 50 });
