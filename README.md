@@ -32,7 +32,7 @@ Records a transaction.
 ```
 
 - `timestamp`: ISO 8601.
-- `amount`: non-zero number. Positive values are **charges**, negative values are **refunds**.
+- `amount`: non-zero number. Positive values are charges, negative values are refunds.
 
 | Status | Case                                                |
 | ------ | --------------------------------------------------- |
@@ -55,7 +55,7 @@ Returns aggregates for the current sliding window (last 60s according to the sys
 }
 ```
 
-**Sign convention:** `refundSum` and `refundAvg` are reported as **positive** values. Internally, the absolute value of the negative amount is accumulated. This spares the client from having to reason about signs when consuming the aggregate.
+**Sign convention:** `refundSum` and `refundAvg` are reported as positive values. Internally, the absolute value of the negative amount is accumulated. This spares the client from having to reason about signs when consuming the aggregate.
 
 When a count is `0`, the associated average is also `0`.
 
@@ -81,11 +81,11 @@ A fixed-size array of `60`, indexed by `second % 60`. Each slot is a `Bucket` th
 
 ### 2. Concurrency model: single-threaded + synchronous
 
-Node.js runs JavaScript on a single thread atop the event loop. `aggregator.add` and `aggregator.snapshot` are **fully synchronous**: there is no `await` between reading state and mutating it. By construction, each invocation executes atomically relative to any other request.
+Node.js runs JavaScript on a single thread atop the event loop. `aggregator.add` and `aggregator.snapshot` are fully synchronous: there is no `await` between reading state and mutating it. By construction, each invocation executes atomically relative to any other request.
 
 **Conclusion:** no locks, mutexes, or lock-free structures are required. Introducing them here would be overhead without benefit. Satisfies non-functional requirement #1. Empirical evidence: [load test results](#load-test-results).
 
-If this were scaled to worker threads or multiple processes in the future, the model would change: one aggregator per worker with **fan-out on reads** (`GET /statistics` queries every worker and merges their partial snapshots), or move the state into shared memory (`SharedArrayBuffer` + `Atomics`). Out of scope for this exercise.
+If this were scaled to worker threads or multiple processes in the future, the model would change: one aggregator per worker with fan-out on reads (`GET /statistics` queries every worker and merges their partial snapshots), or move the state into shared memory (`SharedArrayBuffer` + `Atomics`). Out of scope for this exercise.
 
 ### 3. Timestamp policy
 
@@ -97,11 +97,11 @@ If this were scaled to worker threads or multiple processes in the future, the m
 
 **Rationale:** explicit rejection communicates the problem to the client and avoids _silent drops_, which make production debugging harder. The alternative, accepting a future timestamp and holding it until it enters the window, introduces an unintuitive semantics and additional state. Rejecting is simpler and more auditable. Satisfies non-functional requirement #3.
 
-An additional consideration: accepting future timestamps without losing the memory bound requires defining a **maximum future window** (analogous to the 60s past one). Without such a cap, the system would need an auxiliary store for future transactions whose size would grow with the number of POSTs, violating non-functional requirement #4.
+An additional consideration: accepting future timestamps without losing the memory bound requires defining a maximum future window (analogous to the 60s past one). Without such a cap, the system would need an auxiliary store for future transactions whose size would grow with the number of POSTs, violating non-functional requirement #4.
 
 ### 4. Data expiration
 
-There are no timers or periodic processes. Expiration happens by **lazy overwrite** when the ring buffer wraps around: when a new second `N` is written, the position `N % 60` — which previously held second `N - 60` — gets replaced. Stale buckets that are never overwritten (because their slot stops receiving transactions) are ignored by `snapshot` thanks to the range filter.
+There are no timers or periodic processes. Expiration happens by lazy overwrite when the ring buffer wraps around: when a new second `N` is written, the position `N % 60`, which previously held second `N - 60`, gets replaced. Stale buckets that are never overwritten (because their slot stops receiving transactions) are ignored by `snapshot` thanks to the range filter.
 
 This guarantees bounded memory with zero asynchronous maintenance cost.
 
