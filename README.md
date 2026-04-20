@@ -83,7 +83,7 @@ A fixed-size array of `60`, indexed by `second % 60`. Each slot is a `Bucket` th
 
 Node.js runs JavaScript on a single thread atop the event loop. `aggregator.add` and `aggregator.snapshot` are **fully synchronous**: there is no `await` between reading state and mutating it. By construction, each invocation executes atomically relative to any other request.
 
-**Conclusion:** no locks, mutexes, or lock-free structures are required. Introducing them here would be overhead without benefit. Satisfies non-functional requirement #1.
+**Conclusion:** no locks, mutexes, or lock-free structures are required. Introducing them here would be overhead without benefit. Satisfies non-functional requirement #1. Empirical evidence: [load test results](#load-test-results).
 
 If this were scaled to worker threads or multiple processes in the future, the model would change: one aggregator per worker with **fan-out on reads** (`GET /statistics` queries every worker and merges their partial snapshots), or move the state into shared memory (`SharedArrayBuffer` + `Atomics`). Out of scope for this exercise.
 
@@ -170,6 +170,19 @@ Each layer verifies something different:
 | Load        | autocannon (`scripts/load.js`)                 | Evidence for non-functional requirement #2 (high write rate): write-only scenario + mixed scenario with varied timestamps (in-window, future, stale) and a POST/GET mix. |
 
 Integration tests use `fastify.inject` instead of opening a real socket: it is faster and more deterministic. The smoke test compensates by validating that the compiled artifact actually works over real HTTP.
+
+### Load test results
+
+Results from a local run of `pnpm load`.
+
+**Environment.** Intel i7-11800H (8C/16T), Node 24.14, Windows 11, client and server on the same host (`127.0.0.1`). 100 concurrent connections, 10s per scenario.
+
+| Scenario                     | Throughput  | Latency p50 | Latency p99 | Latency max | Errors / timeouts / 5xx |
+| ---------------------------- | ----------- | ----------- | ----------- | ----------- | ----------------------- |
+| Write-only (POST)            | ~10,100 rps | 9 ms        | 18 ms       | 49 ms       | 0                       |
+| Mixed (~90% POST + ~10% GET) | ~10,100 rps | 9 ms        | 16 ms       | 37 ms       | 0                       |
+
+In the mixed scenario the timestamps are varied on purpose (offset in `[-5, +64]s`) to exercise the three paths: accepted, future, and stale. The `422` responses for future/stale timestamps are expected behaviour and account for the ~5% non-2xx share. Both scenarios complete with **0 `5xx`, 0 errors, and 0 timeouts**.
 
 ## Selected stack
 
