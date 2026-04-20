@@ -83,7 +83,7 @@ A fixed-size array of `60`, indexed by `second % 60`. Each slot is a `Bucket` th
 
 Node.js runs JavaScript on a single thread atop the event loop. `aggregator.add` and `aggregator.snapshot` are fully synchronous: there is no `await` between reading state and mutating it. By construction, each invocation executes atomically relative to any other request.
 
-**Conclusion:** no locks, mutexes, or lock-free structures are required. Introducing them here would be overhead without benefit. Satisfies non-functional requirement #1. Empirical evidence: [load test results](#load-test-results).
+No locks, mutexes, or lock-free structures are required. Introducing them here would be overhead without benefit. Satisfies non-functional requirement #1. Empirical evidence: [load test results](#load-test-results).
 
 If this were scaled to multiple processes in the future, the model would change: one aggregator per worker with fan-out on reads (`GET /statistics` queries every worker and merges their partial snapshots). Out of scope for this exercise.
 
@@ -95,9 +95,9 @@ If this were scaled to multiple processes in the future, the model would change:
 | Future `timestamp` (`txSec > nowSec`)                  | Rejected | `422`  |
 | `timestamp` outside the window (`txSec < nowSec - 59`) | Rejected | `422`  |
 
-**Rationale:** explicit rejection communicates the problem to the client and avoids _silent drops_, which make production debugging harder. The alternative, accepting a future timestamp and holding it until it enters the window, introduces an unintuitive semantics and additional state. Rejecting is simpler and more auditable. Satisfies non-functional requirement #3.
+Explicit rejection communicates the problem to the client and avoids _silent drops_, which make production debugging harder. The alternative, accepting a future timestamp and holding it until it enters the window, introduces an unintuitive semantics and additional state. Rejecting is simpler and more auditable. Satisfies non-functional requirement #3.
 
-An additional consideration: accepting future timestamps without losing the memory bound requires defining a maximum future window (analogous to the 60s past one). Without such a cap, the system would need an auxiliary store for future transactions whose size would grow with the number of POSTs, violating non-functional requirement #4.
+Accepting future timestamps without losing the memory bound requires defining a maximum future window (analogous to the 60s past one). Without such a cap, the system would need an auxiliary store for future transactions whose size would grow with the number of POSTs, violating non-functional requirement #4.
 
 ### 4. Data expiration
 
@@ -113,18 +113,6 @@ This guarantees bounded memory with zero asynchronous maintenance cost.
 | `GET /statistics`    | `O(W)` with `W = 60` constant → `O(1)` |
 
 `snapshot` iterates the 60 buckets and sums them. Since `W` is a fixed domain parameter (the window defined by the spec), the operation is constant-bounded and therefore formally `O(1)`.
-
-### Alternative considered: running totals
-
-Keep 4 aggregator-level running totals (`chargeSum`, `chargeCount`, `refundSum`, `refundCount`) and lazily expire stale buckets at the start of every `add`/`snapshot`. This would reduce `snapshot` to 4 memory reads in the common case.
-
-**Rejected** because:
-
-- For `W = 60`, iterating the array takes nanoseconds (the 60 buckets fit comfortably in L1 cache).
-- It introduces an additional invariant (the running totals must stay in sync with the live buckets at all times), widening the bug surface with off-by-one errors in the expiration path.
-- The exercise asks for `O(1)` and the constant-bounded iteration already satisfies it.
-
-If `W` grew significantly (e.g., a one-hour window: `W = 3600`) the analysis would flip and this alternative would be preferable.
 
 ## Assumptions
 
@@ -169,8 +157,6 @@ Each layer verifies something different:
 | Smoke       | Node + `fetch` (`scripts/smoke.js`)            | That the production build (`dist/server.js`) boots and responds. Covers `tsc-alias` / path-rewriting failures that source-level tests do not catch.                      |
 | Load        | autocannon (`scripts/load.js`)                 | Evidence for non-functional requirement #2 (high write rate): write-only scenario + mixed scenario with varied timestamps (in-window, future, stale) and a POST/GET mix. |
 
-Integration tests use `fastify.inject` instead of opening a real socket: it is faster and more deterministic. The smoke test compensates by validating that the compiled artifact actually works over real HTTP.
-
 ### Load test results
 
 Results from a local run of `pnpm load`.
@@ -194,18 +180,3 @@ In the mixed scenario the timestamps are varied on purpose (offset in `[-5, +64]
 | **tsx**                                    | Runs TypeScript without a prior transpile step in watch mode (`pnpm dev`).                                                 |
 | **tsc-alias**                              | Rewrites path aliases (`@/`) in the `tsc` output; necessary because `tsc` does not resolve them on its own.                |
 | **autocannon**                             | Lightweight, reproducible HTTP load tester for Node.                                                                       |
-
-## Available scripts
-
-| Command                             | Action                                                     |
-| ----------------------------------- | ---------------------------------------------------------- |
-| `pnpm dev`                          | Starts the server in watch mode with `tsx`.                |
-| `pnpm build`                        | Compiles TypeScript to `dist/` and rewrites path aliases.  |
-| `pnpm start`                        | Starts the production build.                               |
-| `pnpm test`                         | Runs unit + integration tests.                             |
-| `pnpm smoke`                        | Build + sanity check against the artifact.                 |
-| `pnpm load`                         | Build + load test (autocannon).                            |
-| `pnpm typecheck`                    | `tsc --noEmit`.                                            |
-| `pnpm lint`                         | ESLint over `src/` and `test/`.                            |
-| `pnpm format` / `pnpm format:check` | Prettier apply / verify.                                   |
-| `pnpm check`                        | `typecheck + lint + format:check + test`. Intended for CI. |
