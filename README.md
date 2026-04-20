@@ -85,7 +85,7 @@ Node.js runs JavaScript on a single thread atop the event loop. `aggregator.add`
 
 **Conclusion:** no locks, mutexes, or lock-free structures are required. Introducing them here would be overhead without benefit. Satisfies non-functional requirement #1. Empirical evidence: [load test results](#load-test-results).
 
-If this were scaled to worker threads or multiple processes in the future, the model would change: one aggregator per worker with fan-out on reads (`GET /statistics` queries every worker and merges their partial snapshots), or move the state into shared memory (`SharedArrayBuffer` + `Atomics`). Out of scope for this exercise.
+If this were scaled to multiple processes in the future, the model would change: one aggregator per worker with fan-out on reads (`GET /statistics` queries every worker and merges their partial snapshots). Out of scope for this exercise.
 
 ### 3. Timestamp policy
 
