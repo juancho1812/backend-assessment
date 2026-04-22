@@ -59,16 +59,6 @@ Returns aggregates for the current sliding window (last 60s according to the sys
 
 When a count is `0`, the associated average is also `0`.
 
-### Quick example
-
-```bash
-curl -X POST http://localhost:3000/transactions \
-  -H 'content-type: application/json' \
-  -d "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"amount\":50}"
-
-curl http://localhost:3000/statistics
-```
-
 ## Design decisions
 
 ### 1. Data structure: 60-bucket ring buffer
